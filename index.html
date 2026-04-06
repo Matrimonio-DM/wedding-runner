@@ -10,9 +10,12 @@
 
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; text-align: center; background: #fdfcfb; overflow: hidden; touch-action: none; height: 100vh; }
-        #menu { padding: 15px; max-width: 400px; margin: 10px auto; background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        #menu { padding: 15px; max-width: 400px; margin: 10px auto; background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow-y: auto; max-height: 90vh; }
         input { padding: 12px; font-size: 16px; width: 80%; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 8px; }
         
+        .intro-text { font-size: 14px; color: #666; margin-bottom: 15px; line-height: 1.4; padding: 0 10px; }
+        .warning-box { font-size: 13px; font-style: italic; color: #ff4d6d; margin-bottom: 10px; min-height: 40px; }
+
         #game { display: none; position: relative; width: 100%; max-width: 600px; height: 60vh; max-height: 300px; margin: auto; background: white; overflow: hidden; border-bottom: 3px solid #333; }
         #player { position: absolute; bottom: 0; left: 40px; width: 45px; height: 45px; font-size: 35px; z-index: 10; display: flex; align-items: center; justify-content: center; }
         
@@ -20,23 +23,27 @@
         .low { bottom: 0; }
         .high { bottom: 35%; }
         
-        #score { position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; background: rgba(255,255,255,0.7); padding: 2px 5px; border-radius: 5px; }
+        #score { position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; background: rgba(255,255,255,0.7); padding: 2px 5px; border-radius: 5px; z-index: 20; }
         #gameOver { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.9); color: white; z-index: 100; flex-direction: column; justify-content: center; align-items: center; }
         
-        button { padding: 12px 25px; font-size: 16px; margin: 8px; border: none; border-radius: 25px; background: #ff4d6d; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #d63353; }
+        button { padding: 12px 20px; font-size: 15px; margin: 5px; border: none; border-radius: 25px; background: #ff4d6d; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #d63353; }
         button:active { transform: translateY(2px); box-shadow: 0 2px 0 #d63353; }
         
         .score-row { display: flex; justify-content: space-between; padding: 6px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 14px; }
-        #globalScores { margin-top: 15px; text-align: left; max-height: 150px; overflow-y: auto; }
+        #globalScores { margin-top: 10px; text-align: left; max-height: 120px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
 <div id="menu">
-    <h2 style="margin-top:0">Wedding Runner 💍</h2>
-    <input type="text" id="nick" placeholder="Inserisci il tuo Nome" autocomplete="off">
-    <div id="error" style="color:red; display:none; font-weight:bold;">⚠️ Scrivi il nome!</div>
+    <h2 style="margin:0 0 10px 0">Wedding Runner 💍</h2>
+    <p class="intro-text">Benvenuti al matrimonio di <b>Donato & Martina</b>!<br>Aiutali ad arrivare all'altare sani e salvi. Salta gli ostacoli e scala la classifica!</p>
     
+    <input type="text" id="nick" placeholder="Inserisci il tuo Nome" autocomplete="off">
+    <div id="error" style="color:red; display:none; font-weight:bold; margin-bottom:5px;">⚠️ Scrivi il nome!</div>
+    
+    <div class="warning-box" id="warningMsg">Scegli il tuo corridore per vedere i consigli...</div>
+
     <div style="display:flex; justify-content:center;">
         <button id="btnDonato">🤵 Donato</button>
         <button id="btnMartina">👰 Martina</button>
@@ -44,7 +51,7 @@
 
     <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
         <strong style="color:#ff4d6d">🏆 TOP 10 GLOBALE</strong>
-        <div id="globalScores">Caricamento classifica...</div>
+        <div id="globalScores">Caricamento...</div>
     </div>
 </div>
 
@@ -52,15 +59,17 @@
     <div id="score">0</div>
     <div id="player"></div>
     <div id="gameOver">
-        <h1>GAME OVER!</h1>
+        <h1 style="margin-top:0">GAME OVER!</h1>
         <div id="fScore" style="font-size:24px; margin-bottom:15px; color:#ff4d6d"></div>
-        <div id="goTop10" style="width:85%; max-height:150px; overflow-y:auto; margin-bottom:15px; background:rgba(255,255,255,0.1); border-radius:10px;"></div>
-        <button onclick="location.reload()">Torna al Menu</button>
+        <div id="goTop10" style="width:85%; max-height:130px; overflow-y:auto; margin-bottom:15px; background:rgba(255,255,255,0.1); border-radius:10px;"></div>
+        <div style="display:flex; gap:10px;">
+            <button id="btnRetry">Riprova</button>
+            <button onclick="location.reload()">Menu</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- CONFIGURAZIONE ---
     const firebaseConfig = {
         apiKey: "AIzaSyAyKpdPAs3CjBswIsuuQNPsB_JzzsFTmUs",
         authDomain: "weddingrunner-20778.firebaseapp.com",
@@ -71,13 +80,10 @@
         appId: "1:478010836035:web:ee1c7cf90c17243c7b00f6"
     };
 
-    // Inizializza solo se Firebase è caricato
     if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
         var db = firebase.database();
         loadLead("globalScores");
-    } else {
-        document.getElementById("globalScores").innerHTML = "Errore di connessione...";
     }
 
     let active = false, isJ = false, pts = 0, vel = 5, hero = "", obsList = [], gInt, sInt;
@@ -94,7 +100,7 @@
             items.forEach((s, i) => {
                 html += `<div class="score-row"><span>${i+1}. ${s.name}</span><b>${s.score}</b></div>`;
             });
-            document.getElementById(targetId).innerHTML = html || "Nessun record ancora!";
+            document.getElementById(targetId).innerHTML = html || "Nessun record";
         });
     }
 
@@ -107,7 +113,16 @@
         game.style.display = "block";
         player.textContent = h === "M" ? "👰" : "🤵";
         
+        // Reset variabili per "Riprova"
         active = true; pts = 0; vel = 5;
+        document.getElementById("score").innerText = "0";
+        document.getElementById("gameOver").style.display = "none";
+        obsList.forEach(o => o.remove());
+        obsList = [];
+        player.style.bottom = "0";
+        isJ = false;
+
+        clearInterval(sInt); clearInterval(gInt);
         sInt = setInterval(() => { 
             if(active) {
                 pts++; 
@@ -123,7 +138,7 @@
         const high = Math.random() > 0.5;
         const o = document.createElement("div");
         o.className = `obstacle ${high ? 'high' : 'low'}`;
-        o.textContent = hero === "D" ? (high ? "💸" : "🍰") : (high ? "🛍️" : "💐");
+        o.textContent = hero === 'D' ? (high ? "💸" : "🍰") : (high ? "🛍️" : "💐");
         o.style.left = "100%";
         game.appendChild(o);
         obsList.push(o);
@@ -131,14 +146,10 @@
         let m = setInterval(() => {
             if(!active) { clearInterval(m); return; }
             let x = o.offsetLeft;
-            if(x < -50) { 
-                o.remove(); 
-                obsList = obsList.filter(item => item !== o);
-                clearInterval(m); 
-            } else {
+            if(x < -50) { o.remove(); obsList = obsList.filter(i => i !== o); clearInterval(m); }
+            else {
                 o.style.left = (x - vel) + "px";
                 let pb = parseInt(player.style.bottom) || 0;
-                // Collisione migliorata
                 if(x > 45 && x < 75) {
                     if(!high && pb < 30) endGame();
                     if(high && pb > 40) endGame();
@@ -151,9 +162,8 @@
         if(isJ || !active) return;
         isJ = true;
         let p = 0;
-        let jumpMax = 110;
         let up = setInterval(() => {
-            if(p >= jumpMax) {
+            if(p >= 110) {
                 clearInterval(up);
                 let down = setInterval(() => {
                     if(p <= 0) { clearInterval(down); isJ = false; p = 0; player.style.bottom = "0"; }
@@ -164,34 +174,29 @@
     }
 
     function endGame() {
-        active = false; 
-        clearInterval(gInt); 
-        clearInterval(sInt);
+        active = false; clearInterval(gInt); clearInterval(sInt);
         document.getElementById("gameOver").style.display = "flex";
         document.getElementById("fScore").innerText = "Punteggio: " + pts;
-        
         if(db) {
             db.ref('scores').push({ name: document.getElementById("nick").value, score: pts });
             loadLead("goTop10");
         }
     }
 
-    // --- EVENTI ---
-    document.getElementById("btnDonato").addEventListener("click", () => launchGame('D'));
-    document.getElementById("btnMartina").addEventListener("click", () => launchGame('M'));
+    // Gestione avvisi dinamici
+    document.getElementById("btnDonato").onmouseover = () => {
+        document.getElementById("warningMsg").innerHTML = "Donato: Attento a non pestare la <b>Torta</b> 🍰 e a non sprecare <b>Soldi</b> 💸!";
+    };
+    document.getElementById("btnMartina").onmouseover = () => {
+        document.getElementById("warningMsg").innerHTML = "Martina: Schiva i <b>Bouquet</b> 💐 e non farti distrarre dallo <b>Shopping</b> 🛍️!";
+    };
+    // Per mobile (click invece di hover)
+    document.getElementById("btnDonato").onclick = () => launchGame('D');
+    document.getElementById("btnMartina").onclick = () => launchGame('M');
+    document.getElementById("btnRetry").onclick = () => launchGame(hero);
 
-    window.addEventListener("touchstart", (e) => { 
-        if(active) { e.preventDefault(); jump(); } 
-    }, {passive: false});
-    
-    window.addEventListener("mousedown", () => { 
-        if(active) jump(); 
-    });
-
-    // Supporto tastiera (Space)
-    window.addEventListener("keydown", (e) => {
-        if(e.code === "Space" && active) jump();
-    });
+    window.addEventListener("touchstart", (e) => { if(active) { e.preventDefault(); jump(); } }, {passive: false});
+    window.addEventListener("mousedown", () => { if(active) jump(); });
 </script>
 </body>
 </html>
